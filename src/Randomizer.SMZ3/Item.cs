@@ -158,6 +158,8 @@ namespace Randomizer.SMZ3
 
                 new Item(ItemType.ThreeHundredRupees),
                 new Item(ItemType.ThreeHundredRupees),
+
+                new Item(ItemType.XRay),
             };
 
             foreach (var item in itemPool)
