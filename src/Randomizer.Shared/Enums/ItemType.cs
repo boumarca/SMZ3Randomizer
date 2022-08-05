@@ -481,7 +481,7 @@ namespace Randomizer.Shared
         Grapple = 0xB0,
 
         [Description("X-Ray Scope")]
-        [ItemCategory(ItemCategory.Metroid)]
+        [ItemCategory(ItemCategory.Metroid, ItemCategory.Scam)]
         XRay = 0xB1,
 
         [Description("Energy Tank")]
