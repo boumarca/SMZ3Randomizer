@@ -21,9 +21,6 @@ In addition to making IBJ completely optional, there is also:
  - More logic customization options;
  - Customizable ship sprites;
  - Sprites made by members of [Diabetus’](https://twitch.tv/the_betus) community and others;
- 
-## My changes
-- Added X-Ray to the list of early placeable items.
 
 ## Credits
 - **Captain Novolin** replacement sprite for _Super Metroid_ by PaddyCo
