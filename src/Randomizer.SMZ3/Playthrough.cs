@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Randomizer.Shared;
 using Randomizer.SMZ3.Regions;
 
 namespace Randomizer.SMZ3
@@ -18,10 +20,48 @@ namespace Randomizer.SMZ3
 
         public IReadOnlyList<Sphere> Spheres { get; }
 
-        public static bool IsImportant(Location location, bool keysanity)
-            => (keysanity && (location.Item.Progression || location.Item.IsDungeonItem || location.Item.IsKeycard))
-            || (!keysanity && location.Item.Progression);
+        public static bool IsImportant(Location location, KeysanityMode keysanity)
+            => location.Item.Progression
+            || (location.Item.IsDungeonItem && keysanity is KeysanityMode.Both or KeysanityMode.Zelda)
+            || (location.Item.IsKeycard && keysanity is KeysanityMode.Both or KeysanityMode.SuperMetroid);
 
+        /// <summary>
+        /// Simulates a rough playthrough and returns a value indicating whether
+        /// the playthrough is likely possible.
+        /// </summary>
+        /// <param name="worlds">A list of the worlds to play through.</param>
+        /// <param name="config">The config used to generate the worlds.</param>
+        /// <param name="playthrough">
+        /// If this method returns <see langword="true"/>, the generated
+        /// playthrough; otherwise, <see langword="null"/>.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/> if the playthrough is possible; otherwise,
+        /// <see langword="false"/>.
+        /// </returns>
+        public static bool TryGenerate(IReadOnlyCollection<World> worlds, Config config, [MaybeNullWhen(true)] out Playthrough playthrough)
+        {
+            try
+            {
+                playthrough = Generate(worlds, config);
+                return true;
+            }
+            catch (RandomizerGenerationException)
+            {
+                playthrough = null;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Simulates a rough playthrough of the specified worlds.
+        /// </summary>
+        /// <param name="worlds">A list of the worlds to play through.</param>
+        /// <param name="config">The config used to generate the worlds.</param>
+        /// <returns>A new <see cref="Playthrough"/>.</returns>
+        /// <exception cref="RandomizerGenerationException">
+        /// The seed is likely impossible.
+        /// </exception>
         public static Playthrough Generate(IReadOnlyCollection<World> worlds, Config config)
         {
             var spheres = new List<Sphere>();
@@ -35,7 +75,7 @@ namespace Randomizer.SMZ3
 
             foreach (var world in worlds)
             {
-                if (!world.Config.Keysanity)
+                if (!world.Config.MetroidKeysanity)
                 {
                     items.AddRange(Item.CreateKeycards(world));
                 }
@@ -89,7 +129,7 @@ namespace Randomizer.SMZ3
                         text.Add($"Inaccessible Item: {location}", $"{location.Item.Name}");
                 }
 
-                foreach (var location in x.Locations.Where(x => IsImportant(x, Config.Keysanity)))
+                foreach (var location in x.Locations.Where(x => IsImportant(x, Config.KeysanityMode)))
                 {
                     if (Config.MultiWorld)
                         text.Add($"{location} ({location.Region.World.Player})", $"{location.Item.Name} ({location.Item.World.Player})");

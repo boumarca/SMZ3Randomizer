@@ -9,7 +9,7 @@ using System.Windows.Media.Imaging;
 using Accessibility;
 
 using Randomizer.SMZ3;
-using Randomizer.SMZ3.Tracking.Configuration;
+using Randomizer.SMZ3.Tracking.Configuration.ConfigTypes;
 
 namespace Randomizer.App.ViewModels
 {
@@ -19,13 +19,12 @@ namespace Randomizer.App.ViewModels
         private readonly ItemData _itemData;
         private readonly TrackerLocationSyncer _syncer;
 
-        public MarkedLocationViewModel(Location location, ItemData itemData, TrackerLocationSyncer syncer)
+        public MarkedLocationViewModel(Location location, ItemData itemData, string itemSprite, TrackerLocationSyncer syncer)
         {
             _location = location;
             _itemData = itemData;
             _syncer = syncer;
-            var fileName = TrackerWindow.GetItemSpriteFileName(itemData);
-            ItemSprite = fileName != null ? new BitmapImage(new Uri(fileName)) : null;
+            ItemSprite = itemSprite != null ? new BitmapImage(new Uri(itemSprite)) : null;
         }
 
         public ImageSource ItemSprite { get; }

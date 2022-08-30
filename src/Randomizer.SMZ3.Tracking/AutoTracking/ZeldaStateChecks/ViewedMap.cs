@@ -77,19 +77,20 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking.ZeldaStateChecks
 
             foreach (var (region, map) in dungeons)
             {
-                if (World.Config.Keysanity && !Items.IsTracked(map))
+                if (World.Config.ZeldaKeysanity && !Items.IsTracked(map))
                     continue;
 
                 var reward = ((IHasReward)region).Reward;
+                var rewardItem = reward.ToRewardItem();
                 var dungeonInfo = _tracker.WorldInfo.Dungeon(region);
-                if (dungeonInfo.Reward == RewardItem.Unknown)
+                if (dungeonInfo.Reward != rewardItem)
                 {
                     rewards.Add(reward);
-                    _tracker.SetDungeonReward(dungeonInfo, reward.ToRewardItem());
+                    _tracker.SetDungeonReward(dungeonInfo, rewardItem);
                 }
             }
 
-            if (rewards.Count(x => x == RewardType.CrystalRed || x == RewardType.CrystalBlue) == 3)
+            if (!World.Config.ZeldaKeysanity && rewards.Count(x => x == RewardType.CrystalRed || x == RewardType.CrystalBlue) == 3)
             {
                 _tracker.SayOnce(x => x.AutoTracker.LightWorldAllCrystals);
             }
@@ -120,19 +121,23 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking.ZeldaStateChecks
 
             foreach (var (region, map) in dungeons)
             {
-                if (World.Config.Keysanity && !Items.IsTracked(map))
+                if (World.Config.ZeldaKeysanity && !Items.IsTracked(map))
                     continue;
 
                 var reward = ((IHasReward)region).Reward;
+                var rewardItem = reward.ToRewardItem();
                 var dungeonInfo = _tracker.WorldInfo.Dungeon(region);
-                if (dungeonInfo.Reward == RewardItem.Unknown)
+                if (dungeonInfo.Reward != rewardItem)
                 {
                     rewards.Add(reward);
-                    _tracker.SetDungeonReward(dungeonInfo, reward.ToRewardItem());
+                    _tracker.SetDungeonReward(dungeonInfo, rewardItem);
                 }
             }
 
-            if (stateMedallionMessage)
+            var isMiseryMirePendant = World.MiseryMire.Reward is RewardType.PendantGreen or RewardType.PendantRed or RewardType.PendantBlue;
+            var isTurtleRockPendant = World.TurtleRock.Reward is RewardType.PendantGreen or RewardType.PendantRed or RewardType.PendantBlue;
+
+            if (!World.Config.ZeldaKeysanity && isMiseryMirePendant && isTurtleRockPendant)
             {
                 _tracker.SayOnce(x => x.AutoTracker.DarkWorldNoMedallions);
             }

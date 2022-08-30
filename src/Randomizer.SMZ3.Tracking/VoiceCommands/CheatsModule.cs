@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 using Randomizer.Shared;
 using Randomizer.SMZ3.Regions.Zelda;
 using Randomizer.SMZ3.Tracking.AutoTracking;
-using Randomizer.SMZ3.Tracking.Configuration;
+using Randomizer.SMZ3.Tracking.Configuration.ConfigTypes;
 using Randomizer.SMZ3.Tracking.Services;
 
 namespace Randomizer.SMZ3.Tracking.VoiceCommands
@@ -159,7 +159,11 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
         {
             if (!PlayerCanCheat()) return;
 
-            if (item != null && Tracker.GameService?.TryGiveItem(item) == true)
+            if (item == null || item.InternalItemType == ItemType.Nothing)
+            {
+                Tracker.Say(x => x.Cheats.CheatInvalidItem);
+            }
+            else if (Tracker.GameService?.TryGiveItem(item) == true)
             {
                 Tracker.Say(x => x.Cheats.CheatPerformed);
             }

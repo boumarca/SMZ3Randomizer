@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Randomizer.Shared;
+using Randomizer.SMZ3.Contracts;
 using Randomizer.SMZ3.Regions;
 using Randomizer.SMZ3.Regions.Zelda;
-using Randomizer.SMZ3.Tracking.Configuration;
+using Randomizer.SMZ3.Tracking.Configuration.ConfigTypes;
+using Randomizer.SMZ3.Tracking.Services;
 
 namespace Randomizer.SMZ3.Tracking.AutoTracking.ZeldaStateChecks
 {
@@ -14,6 +16,14 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking.ZeldaStateChecks
     public class EnteredDungeon : IZeldaStateCheck
     {
         private readonly HashSet<DungeonInfo> _enteredDungeons = new();
+        private readonly IItemService _itemService;
+        private readonly IWorldAccessor _worldAccessor;
+
+        public EnteredDungeon(IItemService itemService, IWorldAccessor worldAccessor)
+        {
+            _itemService = itemService;
+            _worldAccessor = worldAccessor;
+        }
 
         /// <summary>
         /// Executes the check for the current state
@@ -35,11 +45,11 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking.ZeldaStateChecks
                 // Get the dungeon info for the room
                 var dungeonInfo = tracker.WorldInfo.Dungeons.First(x => x.Is(region));
 
-                if (!_enteredDungeons.Contains(dungeonInfo) && (dungeonInfo.Reward == RewardItem.RedPendant || dungeonInfo.Reward == RewardItem.GreenPendant || dungeonInfo.Reward == RewardItem.BluePendant || dungeonInfo.Reward == RewardItem.NonGreenPendant))
+                if (!_worldAccessor.World.Config.ZeldaKeysanity && !_enteredDungeons.Contains(dungeonInfo) && (dungeonInfo.Reward == RewardItem.RedPendant || dungeonInfo.Reward == RewardItem.GreenPendant || dungeonInfo.Reward == RewardItem.BluePendant || dungeonInfo.Reward == RewardItem.NonGreenPendant))
                 {
-                    tracker.Say(tracker.Responses.AutoTracker.EnterPendantDungeon, dungeonInfo.Name, dungeonInfo.Reward.GetName());
+                    tracker.Say(tracker.Responses.AutoTracker.EnterPendantDungeon, dungeonInfo.Name, _itemService.GetName(dungeonInfo.Reward));
                 }
-                else if (region is CastleTower)
+                else if (!_worldAccessor.World.Config.ZeldaKeysanity && region is CastleTower)
                 {
                     tracker.Say(x => x.AutoTracker.EnterHyruleCastleTower);
                 }

@@ -6,7 +6,7 @@ using System.Speech.Recognition;
 
 using Microsoft.Extensions.Logging;
 using Randomizer.Shared;
-using Randomizer.SMZ3.Tracking.Configuration;
+using Randomizer.SMZ3.Tracking.Configuration.ConfigTypes;
 using Randomizer.SMZ3.Tracking.Services;
 
 namespace Randomizer.SMZ3.Tracking.VoiceCommands
@@ -59,6 +59,7 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
         /// with the specified tracker.
         /// </summary>
         /// <param name="tracker">The tracker instance to use.</param>
+        /// <param name="itemService">Service to get item information</param>
         /// <param name="logger">Used to log information.</param>
         protected TrackerModule(Tracker tracker, IItemService itemService, ILogger logger)
         {
@@ -411,7 +412,7 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
                 if (dungeon.HasReward || includeDungeonsWithoutReward)
                 {
                     foreach (var name in dungeon.Name)
-                        dungeonNames.Add(new SemanticResultValue(name.Text, dungeon.TypeName));
+                        dungeonNames.Add(new SemanticResultValue(name.Text, dungeon.Type.FullName));
                 }
             }
 
@@ -431,7 +432,7 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
             foreach (var dungeon in Tracker.WorldInfo.Dungeons)
             {
                 foreach (var name in dungeon.Boss)
-                    bossNames.Add(new SemanticResultValue(name.Text, dungeon.TypeName));
+                    bossNames.Add(new SemanticResultValue(name.Text, dungeon.Type.FullName));
             }
             foreach (var boss in Tracker.WorldInfo.Bosses)
             {
@@ -455,7 +456,7 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
             foreach (var location in Tracker.WorldInfo.Locations)
             {
                 foreach (var name in location.Name)
-                    locationNames.Add(new SemanticResultValue(name.Text, location.Id));
+                    locationNames.Add(new SemanticResultValue(name.Text, location.LocationNumber));
             }
 
             return locationNames;
@@ -475,7 +476,7 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
             foreach (var room in Tracker.WorldInfo.Rooms)
             {
                 foreach (var name in room.Name)
-                    roomNames.Add(new SemanticResultValue(name.Text, room.TypeName));
+                    roomNames.Add(new SemanticResultValue(name.Text, room.Type.FullName));
             }
 
             return roomNames;
@@ -494,11 +495,11 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
 
             foreach (var region in Tracker.WorldInfo.Regions)
             {
-                if (excludeDungeons && Tracker.WorldInfo.Dungeon(region.TypeName) != null)
+                if (excludeDungeons && Tracker.WorldInfo.Dungeon(region.Type.FullName) != null)
                     continue;
 
                 foreach (var name in region.Name)
-                    regionNames.Add(new SemanticResultValue(name.Text, region.TypeName));
+                    regionNames.Add(new SemanticResultValue(name.Text, region.Type.FullName));
             }
 
             return regionNames;

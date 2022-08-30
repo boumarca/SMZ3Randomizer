@@ -10,7 +10,7 @@ using Randomizer.Shared;
 using Randomizer.SMZ3;
 using Randomizer.SMZ3.Regions.Zelda;
 using Randomizer.SMZ3.Tracking;
-using Randomizer.SMZ3.Tracking.Configuration;
+using Randomizer.SMZ3.Tracking.Configuration.ConfigTypes;
 
 namespace Randomizer.App
 {
@@ -195,7 +195,7 @@ namespace Randomizer.App
         /// </summary>
         /// <param name="location">The location to check</param>
         /// <returns>True if the location should be shown. False otherwise</returns>
-        private bool SpecialLocationLogic(Location location)
+        public bool SpecialLocationLogic(Location location)
         {
             // Don't show MM or TR unless we're sure we have the identified medallion or have all medallions
             if (location.Region is MiseryMire or TurtleRock)
@@ -267,7 +267,7 @@ namespace Randomizer.App
         /// <param name="region"></param>
         /// <returns></returns>
         public Progression ProgressionForRegion(Region region) =>
-            region.World.Config.Keysanity ? Progression : ProgressionWithKeys;
+            region.World.Config.KeysanityForRegion(region) ? Progression : ProgressionWithKeys;
 
         /// <summary>
         /// Gets the primary name for the specified location.

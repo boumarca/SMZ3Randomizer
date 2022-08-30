@@ -10,6 +10,7 @@ using Randomizer.Shared;
 using Randomizer.SMZ3.Regions;
 using Randomizer.SMZ3.Text;
 using Randomizer.SMZ3.Tracking.Configuration;
+using Randomizer.SMZ3.Tracking.Configuration.ConfigTypes;
 using Randomizer.SMZ3.Tracking.Services;
 
 namespace Randomizer.SMZ3.Tracking.VoiceCommands
@@ -29,22 +30,27 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
 
         private readonly Dictionary<ItemType, int> _itemHintsGiven = new();
         private readonly Dictionary<int, int> _locationHintsGiven = new();
-        private readonly Playthrough _playthrough;
+        private readonly Playthrough? _playthrough;
         private readonly IItemService _itemService;
+        private readonly IRandomizerConfigService _randomizerConfigService;
+        private Config _config => _randomizerConfigService.Config;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SpoilerModule"/> class.
         /// </summary>
         /// <param name="tracker">The tracker instance.</param>
+        /// <param name="itemService">Used to manage item information.</param>
         /// <param name="logger">Used to write logging information.</param>
-        public SpoilerModule(Tracker tracker, IItemService itemService, ILogger<SpoilerModule> logger)
+        /// <param name="randomizerConfigService">Service for retrieving the randomizer config for the world</param>
+        public SpoilerModule(Tracker tracker, IItemService itemService, ILogger<SpoilerModule> logger, IRandomizerConfigService randomizerConfigService)
             : base(tracker, itemService, logger)
         {
             Tracker.HintsEnabled = !tracker.World.Config.Race && !tracker.World.Config.DisableTrackerHints && tracker.Options.HintsEnabled;
             Tracker.SpoilersEnabled = !tracker.World.Config.Race && !tracker.World.Config.DisableTrackerSpoilers && tracker.Options.SpoilersEnabled;
             if (tracker.World.Config.Race) return;
-            _playthrough = Playthrough.Generate(new[] { tracker.World }, tracker.World.Config);
-            _itemService = itemService;
+            _randomizerConfigService = randomizerConfigService;
+
+            Playthrough.TryGenerate(new[] { tracker.World }, tracker.World.Config, out _playthrough);
 
             if (!tracker.World.Config.DisableTrackerHints)
             {
@@ -95,7 +101,6 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
                     RevealLocationItem(location);
                 });
             }
-            _itemService = itemService;
         }
 
         
@@ -111,11 +116,9 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
                 return;
             }
 
-            var progression = Tracker.GetProgression();
             var locationWithProgressionItem = Tracker.World.Locations
-                .Where(x => !x.Cleared && x.IsAvailable(progression))
-                .Where(x => x.Item.Progression)
-                .Where(x => !ItemService.IsTracked(x.Item.Type))
+                .Where(x => !x.Cleared && x.IsAvailable(Tracker.GetProgression(x.Region)))
+                .Where(x => !ItemService.IsTracked(x.Item.Type) && ItemService?.GetOrDefault(x.Item.Type)?.IsProgression(_config) == true)
                 .Random();
 
             if (locationWithProgressionItem != null)
@@ -215,6 +218,13 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
                 return;
             }
 
+            // Now that we're ready to give hints, make sure they're turned on
+            if (!Tracker.HintsEnabled && !Tracker.SpoilersEnabled)
+            {
+                Tracker.Say(x => x.Hints.PromptEnableItemHints);
+                return;
+            }
+
             // Once we're done being a smartass, see if the item can be found at all
             var locations = Tracker.World.Locations
                 .Where(x => x.Item.Type == item.InternalItemType)
@@ -231,13 +241,6 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
             {
                 // The item exists, but all locations are cleared
                 Tracker.Say(x => x.Spoilers.LocationsCleared, item.NameWithArticle);
-                return;
-            }
-
-            // Now that we're ready to give hints, make sure they're turned on
-            if (!Tracker.HintsEnabled && !Tracker.SpoilersEnabled)
-            {
-                Tracker.Say(x => x.Hints.PromptEnableItemHints);
                 return;
             }
 
@@ -425,18 +428,14 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
                         ? Tracker.CorrectPronunciation(Tracker.World.Config.SamusName)
                         : Tracker.CorrectPronunciation(Tracker.World.Config.LinkName);
 
-                    if (location.Item.Type.IsInAnyCategory(ItemCategory.Junk, ItemCategory.Scam, ItemCategory.Map, ItemCategory.Compass)
-                        || (location.Item.Type.IsInAnyCategory(ItemCategory.SmallKey, ItemCategory.BigKey, ItemCategory.Keycard)
-                            && !Tracker.World.Config.Keysanity))
+                    if (ItemService.GetOrDefault(location.Item.Type)?.IsJunk(Tracker.World.Config) == true)
                     {
                         return GiveLocationHint(x => x.LocationHasJunkItem, location, characterName);
                     }
 
-                    var junkCategories = new[] { ItemCategory.Junk, ItemCategory.Scam, ItemCategory.Map, ItemCategory.Compass };
-                    if (!Tracker.World.Config.Keysanity)
-                        junkCategories = junkCategories.Concat(new[] { ItemCategory.SmallKey, ItemCategory.BigKey, ItemCategory.Keycard }).ToArray();
+                    // Todo: Add check for if it's progression
 
-                    if (!location.Item.Type.IsInAnyCategory(junkCategories))
+                    if (ItemService.GetOrDefault(location.Item.Type)?.IsGood(Tracker.World.Config) == true)
                     {
                         return GiveLocationHint(x => x.LocationHasUsefulItem, location, characterName);
                     }
@@ -485,11 +484,10 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
 
         private bool GiveItemLocationSpoiler(ItemData item)
         {
-            var progression = Tracker.GetProgression();
             var reachableLocation = Tracker.World.Locations
                 .Where(x => x.Item.Type == item.InternalItemType)
                 .Where(x => !x.Cleared)
-                .Where(x => x.IsAvailable(progression))
+                .Where(x => x.IsAvailable(Tracker.GetProgression(x.Region)))
                 .Random();
             if (reachableLocation != null)
             {
@@ -522,7 +520,6 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
 
         private bool GiveItemLocationHint(ItemData item)
         {
-            var progression = Tracker.GetProgression();
             var itemLocations = Tracker.World.Locations
                 .Where(x => x.Item.Type == item.InternalItemType)
                 .Where(x => !x.Cleared);
@@ -541,7 +538,7 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
                 // items)
                 case 0:
                     {
-                        var isInLogic = itemLocations.Any(x => x.IsAvailable(progression));
+                        var isInLogic = itemLocations.Any(x => x.IsAvailable(Tracker.GetProgression(x.Region)));
                         if (!isInLogic)
                             return GiveItemHint(x => x.ItemNotInLogic, item);
 
@@ -561,9 +558,16 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
                 // - Where will you NOT find it?
                 case 1:
                     {
-                        if (itemLocations.All(x => !x.IsAvailable(progression)))
+                        if (itemLocations.All(x => !x.IsAvailable(Tracker.GetProgression(x.Region))))
                         {
-                            var randomLocation = itemLocations.Where(x => !x.IsAvailable(progression)).Random();
+                            var randomLocation = itemLocations.Where(x => !x.IsAvailable(Tracker.GetProgression(x.Region))).Random();
+
+                            if (randomLocation == null)
+                            {
+                                return GiveItemHint(x => x.NoApplicableHints, item);
+                            }
+
+                            var progression = Tracker.GetProgression(randomLocation.Region);
                             var missingItemSets = Logic.GetMissingRequiredItems(randomLocation, progression);
                             if (!missingItemSets.Any())
                             {
@@ -579,6 +583,11 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
                                 if (randomMissingItem != null)
                                     return GiveItemHint(x => x.ItemRequiresOtherItem, item, randomMissingItem.NameWithArticle);
                             }
+                        }
+
+                        if (_playthrough == null)
+                        {
+                            return GiveItemHint(x => x.PlaythroughImpossible, item);
                         }
 
                         var sphere = _playthrough.Spheres.IndexOf(x => x.Items.Any(i => i.Type == item.InternalItemType));
@@ -702,11 +711,10 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
 
         private Location? GetRandomItemLocationWithFilter(ItemData item, Func<Location, bool> predicate)
         {
-            var progression = Tracker.GetProgression();
             var randomLocation = Tracker.World.Locations
                 .Where(x => x.Item.Type == item.InternalItemType)
                 .Where(x => !x.Cleared)
-                .Where(x => x.IsAvailable(progression))
+                .Where(x => x.IsAvailable(Tracker.GetProgression(x.Region)))
                 .Where(predicate)
                 .Random();
 

@@ -56,6 +56,9 @@ namespace Randomizer.App.ViewModels
         [JsonPropertyName("Logic")]
         public LogicConfig LogicConfig { get; set; }
 
+        [JsonIgnore]
+        public string FilePath { get; set; }
+
         public bool EarlyItemsExpanded { get; set; } = false;
 
         public bool CustomizationExpanded { get; set; } = false;
@@ -90,11 +93,17 @@ namespace Randomizer.App.ViewModels
         public static RandomizerOptions Load(string path)
         {
             var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<RandomizerOptions>(json, s_jsonOptions);
+            var options = JsonSerializer.Deserialize<RandomizerOptions>(json, s_jsonOptions);
+            options.FilePath = path;
+            return options;
         }
 
-        public void Save(string path)
+        public void Save(string path = null)
         {
+            if (path == null)
+            {
+                path = FilePath;
+            }
             var json = JsonSerializer.Serialize(this, s_jsonOptions);
             File.WriteAllText(path, json);
         }
@@ -105,20 +114,9 @@ namespace Randomizer.App.ViewModels
                 var config = new Config()
                 {
                     GameMode = GameMode.Normal,
-                    Z3Logic = Z3Logic.Normal,
-                    SMLogic = SMLogic.Normal,
-                    ItemLocations =
-                    {
-                        [ItemType.ProgressiveSword] = SeedOptions.SwordLocation,
-                        [ItemType.Morph] = SeedOptions.MorphLocation,
-                        [ItemType.Bombs] = SeedOptions.MorphBombsLocation,
-                        [ItemType.Boots] = SeedOptions.PegasusBootsLocation,
-                        [ItemType.SpaceJump] = SeedOptions.SpaceJumpLocation,
-                    },
-                    ShaktoolItemPool = SeedOptions.ShaktoolItem,
-                    PegWorldItemPool = SeedOptions.PegWorldItem,
-                    KeyShuffle = SeedOptions.Keysanity ? KeyShuffle.Keysanity : KeyShuffle.None,
+                    KeysanityMode = SeedOptions.KeysanityMode,
                     Race = SeedOptions.Race,
+                    ItemPlacementRule = SeedOptions.ItemPlacementRule,
                     DisableSpoilerLog = SeedOptions.DisableSpoilerLog,
                     DisableTrackerHints = SeedOptions.DisableTrackerHints,
                     DisableTrackerSpoilers = SeedOptions.DisableTrackerSpoilers,
@@ -129,7 +127,6 @@ namespace Randomizer.App.ViewModels
                     LowHealthBeepSpeed = PatchOptions.LowHealthBeepSpeed,
                     DisableLowEnergyBeep = PatchOptions.DisableLowEnergyBeep,
                     CasualSMPatches = PatchOptions.CasualSuperMetroidPatches,
-                    ShaktoolWithoutGrapple = PatchOptions.ShaktoolWithoutGrapple,
                     MenuSpeed = PatchOptions.MenuSpeed,
                     LinkName = PatchOptions.LinkSprite == Sprite.DefaultLink ? "Link" : PatchOptions.LinkSprite.Name,
                     SamusName = PatchOptions.SamusSprite == Sprite.DefaultSamus ? "Samus" : PatchOptions.SamusSprite.Name,
@@ -145,7 +142,8 @@ namespace Randomizer.App.ViewModels
             {
                 var oldConfig = Config.FromConfigString(SeedOptions.ConfigString);
 
-                var keyShuffle = SeedOptions.Keysanity ? KeyShuffle.Keysanity : KeyShuffle.None;
+                var keysanity = SeedOptions.KeysanityMode;
+                var itemPlacement = SeedOptions.ItemPlacementRule;
                 var race = SeedOptions.Race;
                 var disableSpoilerLog = SeedOptions.DisableSpoilerLog;
                 var disableTrackerHints = SeedOptions.DisableTrackerHints;
@@ -155,7 +153,8 @@ namespace Randomizer.App.ViewModels
 
                 if (SeedOptions.CopySeedAndRaceSettings)
                 {
-                    keyShuffle = oldConfig.KeyShuffle;
+                    keysanity = oldConfig.KeysanityMode;
+                    itemPlacement = oldConfig.ItemPlacementRule;
                     race = oldConfig.Race;
                     disableSpoilerLog = oldConfig.DisableSpoilerLog;
                     disableTrackerHints = oldConfig.DisableTrackerHints;
@@ -168,19 +167,8 @@ namespace Randomizer.App.ViewModels
                 return new Config()
                 {
                     GameMode = GameMode.Normal,
-                    Z3Logic = Z3Logic.Normal,
-                    SMLogic = SMLogic.Normal,
-                    ItemLocations =
-                    {
-                        [ItemType.ProgressiveSword] = SeedOptions.SwordLocation,
-                        [ItemType.Morph] = SeedOptions.MorphLocation,
-                        [ItemType.Bombs] = SeedOptions.MorphBombsLocation,
-                        [ItemType.Boots] = SeedOptions.PegasusBootsLocation,
-                        [ItemType.SpaceJump] = SeedOptions.SpaceJumpLocation,
-                    },
-                    ShaktoolItemPool = SeedOptions.ShaktoolItem,
-                    PegWorldItemPool = SeedOptions.PegWorldItem,
-                    KeyShuffle = keyShuffle,
+                    KeysanityMode = keysanity,
+                    ItemPlacementRule = itemPlacement,
                     Race = race,
                     DisableSpoilerLog = disableSpoilerLog,
                     DisableTrackerHints = disableTrackerHints,
