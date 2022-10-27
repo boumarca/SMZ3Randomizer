@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 
@@ -11,7 +12,8 @@ using Microsoft.Extensions.Logging;
 
 using Randomizer.App.ViewModels;
 using Randomizer.SMZ3.ChatIntegration;
-using Randomizer.SMZ3.Tracking.Configuration;
+using Randomizer.Data.Configuration;
+using Randomizer.Data.Options;
 
 namespace Randomizer.App
 {
@@ -22,14 +24,14 @@ namespace Randomizer.App
     {
         private readonly IChatAuthenticationService _chatAuthenticationService;
         private readonly ILogger<OptionsWindow> _logger;
-        private readonly TrackerConfigProvider _trackerConfigProvider;
+        private readonly ConfigProvider _trackerConfigProvider;
         private GeneralOptions _options;
         private bool _canLogIn = true;
         private ICollection<string> _availableProfiles;
 
 
         public OptionsWindow(IChatAuthenticationService chatAuthenticationService,
-            TrackerConfigProvider configProvider,
+            ConfigProvider configProvider,
             ILogger<OptionsWindow> logger)
         {
             InitializeComponent();
@@ -70,6 +72,8 @@ namespace Randomizer.App
             }
         }
 
+        public bool IsValidToken => !string.IsNullOrEmpty(Options.TwitchOAuthToken);
+
         public ICollection<string> AvailableProfiles
         {
             get => _availableProfiles;
@@ -108,7 +112,6 @@ namespace Randomizer.App
                         Options.TwitchOAuthToken = token;
                         Options.TwitchChannel = string.IsNullOrEmpty(Options.TwitchChannel) ? userData.Name : Options.TwitchChannel;
                         Options.TwitchId = userData.Id;
-
                     }
                     catch (Exception ex)
                     {
@@ -124,6 +127,8 @@ namespace Randomizer.App
                 IsLoggingIn = true;
                 Cursor = null;
             }
+
+            await ValidateTwitchOAuthToken();
         }
 
         private void EnableProfile_Click(object sender, RoutedEventArgs e)
@@ -182,6 +187,49 @@ namespace Randomizer.App
             AvailableProfiles = _trackerConfigProvider.GetAvailableProfiles();
             PropertyChanged?.Invoke(this, new(nameof(EnabledProfiles)));
             PropertyChanged?.Invoke(this, new(nameof(DisabledProfiles)));
+        }
+
+        private async void Self_Loaded(object sender, RoutedEventArgs e)
+        {
+            await ValidateTwitchOAuthToken();
+        }
+
+        private async Task ValidateTwitchOAuthToken()
+        {
+            if (string.IsNullOrEmpty(Options.TwitchOAuthToken))
+            {
+                TwitchLoginFeedback.Text = "";
+                TwitchLoginButton.Visibility = Visibility.Visible;
+                TwitchLogoutButton.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            var isValid = await _chatAuthenticationService.ValidateTokenAsync(Options.TwitchOAuthToken, default);
+            if (!isValid)
+            {
+                Options.TwitchOAuthToken = "";
+                TwitchLoginFeedback.Text = "Login expired.";
+                TwitchLoginButton.Visibility = Visibility.Visible;
+                TwitchLogoutButton.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                TwitchLoginFeedback.Text = "Logged in.";
+                TwitchLoginButton.Visibility = Visibility.Collapsed;
+                TwitchLogoutButton.Visibility = Visibility.Visible;
+            }
+        }
+
+        private async void TwitchLogoutButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(Options.TwitchOAuthToken))
+                return;
+
+            var revoked = await _chatAuthenticationService.RevokeTokenAsync(Options.TwitchOAuthToken, default);
+            Options.TwitchOAuthToken = "";
+            TwitchLoginFeedback.Text = revoked ? "Logged out." : "Something went wrong.";
+            TwitchLoginButton.Visibility = Visibility.Visible;
+            TwitchLogoutButton.Visibility = Visibility.Collapsed;
         }
     }
 }

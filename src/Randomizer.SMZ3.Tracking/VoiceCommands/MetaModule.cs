@@ -24,9 +24,12 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
         /// Initializes a new instance of the <see cref="MetaModule"/> class.
         /// </summary>
         /// <param name="tracker">The tracker instance.</param>
+        /// <param name="itemService">Service to get item information</param>
+        /// <param name="worldService">Service to get world information</param>
         /// <param name="logger">Used to write logging information.</param>
-        public MetaModule(Tracker tracker, IItemService itemService, ILogger<MetaModule> logger, ICommunicator communicator)
-            : base(tracker, itemService, logger)
+        /// <param name="communicator">Used to communicate information to the user</param>
+        public MetaModule(Tracker tracker, IItemService itemService, IWorldService worldService, ILogger<MetaModule> logger, ICommunicator communicator)
+            : base(tracker, itemService, worldService, logger)
         {
             _communicator = communicator;
 
@@ -92,14 +95,35 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
 
             AddCommand("Mute", GetMuteRule(), (tracker, result) =>
             {
-                tracker.Say(x => x.Muted);
-                _communicator.Disable();
+                if (_communicator.IsEnabled)
+                {
+                    tracker.Say(x => x.Muted);
+                    _communicator.Disable();
+                    tracker.AddUndo(() =>
+                    {
+                        _communicator.Enable();
+                        Tracker.Say(x => x.ActionUndone);
+                    });
+                }
+                
             });
 
             AddCommand("Unmute", GetUnmuteRule(), (tracker, result) =>
             {
-                _communicator.Enable();
-                tracker.Say(x => x.Unmuted);
+                if (!communicator.IsEnabled)
+                {
+                    _communicator.Enable();
+                    tracker.Say(x => x.Unmuted);
+                    tracker.AddUndo(() =>
+                    {
+                        _communicator.Disable();
+                    });
+                }
+            });
+
+            AddCommand("Beat game", GetBeatGameRule(), (tracker, result) =>
+            {
+                tracker.GameBeaten(false);
             });
         }
 
@@ -208,6 +232,14 @@ namespace Randomizer.SMZ3.Tracking.VoiceCommands
                 .Append("Hey tracker, ")
                 .Optional("please")
                 .OneOf("unmute yourself", "unsilence yourself");
+        }
+
+        private GrammarBuilder GetBeatGameRule()
+        {
+            return new GrammarBuilder()
+                .Append("Hey tracker, ")
+                .OneOf("I beat", "I finished")
+                .OneOf("the game", "the seed");
         }
     }
 }

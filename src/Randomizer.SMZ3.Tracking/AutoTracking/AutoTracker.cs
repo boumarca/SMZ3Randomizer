@@ -4,12 +4,15 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Randomizer.Data.WorldData.Regions;
+using Randomizer.Data.WorldData.Regions.Zelda;
+using Randomizer.Data.WorldData;
 using Randomizer.Shared;
-using Randomizer.SMZ3.Regions.Zelda;
 using Randomizer.SMZ3.Tracking.AutoTracking.MetroidStateChecks;
 using Randomizer.SMZ3.Tracking.AutoTracking.ZeldaStateChecks;
 using Randomizer.SMZ3.Tracking.Services;
 using Randomizer.SMZ3.Tracking.VoiceCommands;
+using Randomizer.Data.Options;
 
 namespace Randomizer.SMZ3.Tracking.AutoTracking
 {
@@ -29,6 +32,7 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
         private readonly IEnumerable<IMetroidStateCheck?> _metroidStateChecks;
         private readonly TrackerModuleFactory _trackerModuleFactory;
         private readonly IRandomizerConfigService _config;
+        private readonly IWorldService _worldService;
         private int _currentIndex = 0;
         private Game _previousGame;
         private bool _hasStarted;
@@ -38,6 +42,7 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
         private int _numGTItems = 0;
         private bool _seenGTTorch = false;
         private bool _foundGTKey = false;
+        private bool _beatBothBosses = false;
 
         /// <summary>
         /// Constructor for Auto Tracker
@@ -49,13 +54,17 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
         /// <param name="metroidStateChecks"></param>
         /// <param name="trackerModuleFactory"></param>
         /// <param name="randomizerConfigService"></param>
+        /// <param name="worldService"></param>
+        /// <param name="tracker"></param>
         public AutoTracker(ILogger<AutoTracker> logger,
             ILoggerFactory loggerFactory,
             IItemService itemService,
             IEnumerable<IZeldaStateCheck> zeldaStateChecks,
             IEnumerable<IMetroidStateCheck> metroidStateChecks,
             TrackerModuleFactory trackerModuleFactory,
-            IRandomizerConfigService randomizerConfigService
+            IRandomizerConfigService randomizerConfigService,
+            IWorldService worldService,
+            Tracker tracker
         )
         {
             _logger = logger;
@@ -63,6 +72,8 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
             _itemService = itemService;
             _trackerModuleFactory = trackerModuleFactory;
             _config = randomizerConfigService;
+            _worldService = worldService;
+            Tracker = tracker;
 
             // Check if the game has started or not
             AddReadAction(new()
@@ -119,6 +130,17 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
                 Action = CheckZeldaState
             });
 
+            // Check if Ganon is defeated
+            AddReadAction(new()
+            {
+                Type = EmulatorActionType.ReadBlock,
+                Domain = MemoryDomain.CartRAM,
+                Address = 0xA17400,
+                Length = 0x120,
+                Game = Game.Both,
+                Action = CheckBeatFinalBosses
+            });
+
             // Check Metroid locations
             AddReadAction(new()
             {
@@ -139,6 +161,17 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
                 Length = 0x08,
                 Game = Game.SM,
                 Action = CheckMetroidBosses
+            });
+
+            // Check state of if the player has entered the ship
+            AddReadAction(new()
+            {
+                Type = EmulatorActionType.ReadBlock,
+                Domain = MemoryDomain.WRAM,
+                Address = 0x7e0FB2,
+                Length = 0x2,
+                Game = Game.SM,
+                Action = CheckShip
             });
 
             // Check Metroid state
@@ -178,7 +211,7 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
         /// <summary>
         /// The tracker associated with this auto tracker
         /// </summary>
-        public Tracker? Tracker { get; set; }
+        public Tracker Tracker { get; set; }
 
         /// <summary>
         /// The type of connector that the auto tracker is currently using
@@ -297,6 +330,10 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
             }
         }
 
+        /// <summary>
+        /// Writes a particular action to the emulator memory
+        /// </summary>
+        /// <param name="action">The action to write to memory</param>
         public void WriteToMemory(EmulatorAction action)
         {
             _sendActions.Enqueue(action);
@@ -362,7 +399,7 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
                     }
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(0.1f));
+                await Task.Delay(TimeSpan.FromSeconds(0.1f), cancellationToken);
             }
             IsSendingMessages = false;
             _logger.LogInformation("Stop sending messages " + Thread.CurrentThread.Name);
@@ -455,14 +492,24 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
                     PlayerHasFairy |= action.CurrentData?.ReadUInt8(0xDC + i) == 6;
                 }
 
+                // Activated flute
+                if (action.CurrentData?.CheckBinary8Bit(0x10C, 0x01) == true && action.PreviousData?.CheckBinary8Bit(0x10C, 0x01) != true)
+                {
+                    var duckItem = _itemService.FirstOrDefault("Duck");
+                    if (duckItem != null && duckItem.State.TrackingState == 0)
+                    {
+                        Tracker?.TrackItem(duckItem, null, null, false, true, null, false);
+                    }
+                }
+
                 // Check if the player cleared Aga
                 if (action.CurrentData?.ReadUInt8(0x145) >= 3 && Tracker != null)
                 {
-                    var dungeon = Tracker.WorldInfo.Dungeons.First(x => x.Is(Tracker.World.CastleTower));
-                    if (!dungeon.Cleared)
+                    var castleTower = Tracker.World.CastleTower;
+                    if (!castleTower.DungeonState.Cleared)
                     {
-                        Tracker.MarkDungeonAsCleared(dungeon, null);
-                        _logger.LogInformation($"Auto tracked {dungeon.Name} as cleared");
+                        Tracker.MarkDungeonAsCleared(castleTower, null);
+                        _logger.LogInformation($"Auto tracked {castleTower.DungeonMetadata.Name} as cleared");
                     }
                 }
             }
@@ -509,7 +556,7 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
             // Store the locations for this action so that we don't need to grab them each time every half a second or so
             if (action.Locations == null)
             {
-                action.Locations = Tracker.World.Locations.Where(x => x.MemoryType == type && ((game == Game.SM && x.Id < 256) || (game == Game.Zelda && x.Id >= 256))).ToList();
+                action.Locations = _worldService.AllLocations().Where(x => x.MemoryType == type && ((game == Game.SM && x.Id < 256) || (game == Game.Zelda && x.Id >= 256))).ToList();
             }
 
             foreach (var location in action.Locations)
@@ -520,14 +567,14 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
                     var flag = location.MemoryFlag ?? 0;
                     var currentCleared = (is16Bit && currentData.CheckUInt16(loc * 2, flag)) || (!is16Bit && currentData.CheckBinary8Bit(loc, flag));
                     var prevCleared = (is16Bit && prevData.CheckUInt16(loc * 2, flag)) || (!is16Bit && prevData.CheckBinary8Bit(loc, flag));
-                    if (!location.Cleared && currentCleared && prevCleared)
+                    if (!location.State.Cleared && currentCleared && prevCleared)
                     {
                         if (location.Region is GanonsTower gt && location != gt.BobsTorch)
                         {
                             IncrementGTItems(location);
                         }
 
-                        var item = _itemService.GetOrDefault(location);
+                        var item = location.Item;
                         if (item != null)
                         {
                             Tracker.TrackItem(item: item, trackedAs: null, confidence: null, tryClear: true, autoTracked: true, location: location);
@@ -558,9 +605,9 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
         {
             if (Tracker == null) return;
 
-            foreach (var dungeonInfo in Tracker.WorldInfo.Dungeons)
+            foreach (var dungeon in Tracker.World.Dungeons)
             {
-                var region = Tracker.World.Regions.OfType<Z3Region>().First(x => dungeonInfo.Is(x));
+                var region = (Z3Region)dungeon;
 
                 // Skip if we don't have any memory addresses saved for this dungeon
                 if (region.MemoryAddress == null || region.MemoryFlag == null)
@@ -572,16 +619,16 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
                 {
                     var prevValue = prevData.CheckUInt16(region.MemoryAddress * 2 ?? 0, region.MemoryFlag ?? 0);
                     var currentValue = currentData.CheckUInt16(region.MemoryAddress * 2 ?? 0, region.MemoryFlag ?? 0);
-                    if (!dungeonInfo.Cleared && prevValue && currentValue)
+                    if (!dungeon.DungeonState.Cleared && prevValue && currentValue)
                     {
-                        Tracker.MarkDungeonAsCleared(dungeonInfo);
-                        _logger.LogInformation($"Auto tracked {dungeonInfo.Name} as cleared");
+                        Tracker.MarkDungeonAsCleared(dungeon);
+                        _logger.LogInformation($"Auto tracked {dungeon.DungeonName} as cleared");
                     }
 
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Unable to auto track Dungeon: " + dungeonInfo.Name);
+                    _logger.LogError(e, "Unable to auto track Dungeon: " + dungeon.DungeonName);
                     Tracker.Error();
                 }
             }
@@ -594,32 +641,14 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
         protected void CheckSMBosses(EmulatorMemoryData data)
         {
             if (Tracker == null) return;
-            var boss = Tracker.WorldInfo.Bosses.First(x => "Kraid".Equals(x.Name[0], StringComparison.OrdinalIgnoreCase));
-            if (!boss.Defeated && data.CheckBinary8Bit(0x1, 0x1))
-            {
-                Tracker.MarkBossAsDefeated(boss);
-                _logger.LogInformation($"Auto tracked {boss.Name} as defeated");
-            }
 
-            boss = Tracker.WorldInfo.Bosses.First(x => "Ridley".Equals(x.Name[0], StringComparison.OrdinalIgnoreCase));
-            if (!boss.Defeated && data.CheckBinary8Bit(0x2, 0x1))
+            foreach (var boss in Tracker.World.AllBosses.Where(x => x.Metadata?.MemoryAddress != null && x.Metadata?.MemoryFlag > 0 && x.State?.Defeated != true))
             {
-                Tracker.MarkBossAsDefeated(boss);
-                _logger.LogInformation($"Auto tracked {boss.Name} as defeated");
-            }
-
-            boss = Tracker.WorldInfo.Bosses.First(x => "Phantoon".Equals(x.Name[0], StringComparison.OrdinalIgnoreCase));
-            if (!boss.Defeated && data.CheckBinary8Bit(0x3, 0x1))
-            {
-                Tracker.MarkBossAsDefeated(boss);
-                _logger.LogInformation($"Auto tracked {boss.Name} as defeated");
-            }
-
-            boss = Tracker.WorldInfo.Bosses.First(x => "Draygon".Equals(x.Name[0], StringComparison.OrdinalIgnoreCase));
-            if (!boss.Defeated && data.CheckBinary8Bit(0x4, 0x1))
-            {
-                Tracker.MarkBossAsDefeated(boss);
-                _logger.LogInformation($"Auto tracked {boss.Name} as defeated");
+                if (data.CheckBinary8Bit(boss.Metadata?.MemoryAddress ?? 0, boss.Metadata?.MemoryFlag ?? 100))
+                {
+                    Tracker.MarkBossAsDefeated(boss);
+                    _logger.LogInformation($"Auto tracked {boss.Name} as defeated");
+                }
             }
         }
 
@@ -645,6 +674,15 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
                 IncrementGTItems(Tracker.World.GanonsTower.BobsTorch);
             }
 
+            // Entered the triforce room
+            if (ZeldaState.State == 0x19)
+            {
+                if (_beatBothBosses)
+                {
+                    Tracker.GameBeaten(true);
+                }
+            }
+
             foreach (var check in _zeldaStateChecks)
             {
                 if (check != null && check.ExecuteCheck(Tracker, ZeldaState, prevState))
@@ -652,6 +690,63 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
                     _logger.LogInformation($"{check.GetType().Name} detected");
                 }
             }
+        }
+
+        /// <summary>
+        /// Checks if the final bosses of both games are defeated
+        /// It appears as if 0x2 represents the first boss defeated and 0x106 is the second,
+        /// no matter what order the bosses were defeated in
+        /// </summary>
+        /// <param name="action">The message from the emulator with the memory state</param>
+        protected void CheckBeatFinalBosses(EmulatorAction action)
+        {
+            if (_previousGame != CurrentGame || action.CurrentData == null || Tracker == null) return;
+            
+            if (action.PreviousData?.ReadUInt8(0x2) == 0 && action.CurrentData.ReadUInt8(0x2) > 0)
+            {
+                if (CurrentGame == Game.Zelda)
+                {
+                    var gt = Tracker.World.GanonsTower;
+                    if (!gt.DungeonState.Cleared)
+                    {
+                        Tracker.MarkDungeonAsCleared(gt, confidence: null, autoTracked: true);
+                    }
+                }
+                else if (CurrentGame == Game.SM)
+                {
+                    var motherBrain = Tracker.World.AllBosses.First(x => x.Name == "Mother Brain");
+                    if (motherBrain.State?.Defeated != true)
+                    {
+                        Tracker.MarkBossAsDefeated(motherBrain, admittedGuilt: true, confidence: null, autoTracked: false);
+                    }
+                }
+            }
+
+            if (action.PreviousData?.ReadUInt8(0x106) == 0 && action.CurrentData.ReadUInt8(0x106) > 0)
+            {
+                if (CurrentGame == Game.Zelda)
+                {
+                    var gt = Tracker.World.GanonsTower;
+                    if (!gt.DungeonState.Cleared)
+                    {
+                        Tracker.MarkDungeonAsCleared(gt, confidence: null, autoTracked: true);
+                    }
+                }
+                else if (CurrentGame == Game.SM)
+                {
+                    var motherBrain = Tracker.World.AllBosses.First(x => x.Name == "Mother Brain");
+                    if (motherBrain.State?.Defeated != true)
+                    {
+                        Tracker.MarkBossAsDefeated(motherBrain, admittedGuilt: true, confidence: null, autoTracked: false);
+                    }
+                }
+            }
+
+            if (action.CurrentData.ReadUInt8(0x2) > 0 && action.CurrentData.ReadUInt8(0x106) > 0)
+            {
+                _beatBothBosses = true;
+            }
+
         }
 
         /// <summary>
@@ -672,6 +767,20 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking
                 {
                     _logger.LogInformation($"{check.GetType().Name} detected");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Checks if the player has entered the ship
+        /// </summary>
+        /// <param name="action"></param>
+        protected void CheckShip(EmulatorAction action)
+        {
+            if (_previousGame != CurrentGame || action.CurrentData == null || action.PreviousData == null || Tracker == null) return;
+            var currentInShip = action.CurrentData.ReadUInt16(0) == 0xAA4F;
+            if (currentInShip && _beatBothBosses)
+            {
+                Tracker?.GameBeaten(true);
             }
         }
 

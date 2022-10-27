@@ -14,7 +14,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
 
 using Randomizer.App.ViewModels;
+using Randomizer.Data;
+using Randomizer.Data.Options;
 using Randomizer.Shared.Models;
+using Randomizer.SMZ3.ChatIntegration;
 using Randomizer.SMZ3.Contracts;
 using Randomizer.SMZ3.Generation;
 using Randomizer.SMZ3.Tracking.Services;
@@ -34,14 +37,14 @@ namespace Randomizer.App
         private readonly RandomizerContext _dbContext;
         private readonly RomGenerator _romGenerator;
         private TrackerWindow _trackerWindow;
-        private readonly IHistoryService _historyService;
+        private readonly IChatAuthenticationService _chatAuthenticationService;
 
         public RomListWindow(IServiceProvider serviceProvider,
             OptionsFactory optionsFactory,
             ILogger<RomListWindow> logger,
             RandomizerContext dbContext,
             RomGenerator romGenerator,
-            IHistoryService historyService)
+            IChatAuthenticationService chatAuthenticationService)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
@@ -50,11 +53,12 @@ namespace Randomizer.App
             InitializeComponent();
             CheckSpeechRecognition();
             Options = optionsFactory.Create();
-            _historyService = historyService;
-
+            _chatAuthenticationService = chatAuthenticationService;
             Model = new GeneratedRomsViewModel();
             DataContext = Model;
             UpdateRomList();
+
+            App.RestoreWindowPositionAndSize(this);
         }
 
         public GeneratedRomsViewModel Model { get; }
@@ -93,18 +97,10 @@ namespace Randomizer.App
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void QuickPlayButton_Click(object sender, RoutedEventArgs e)
+        private async void QuickPlayButton_Click(object sender, RoutedEventArgs e)
         {
-            var successful = _romGenerator.GenerateRandomRom(Options, out _, out var error, out var rom);
-
-            if (!successful)
-            {
-                if (!string.IsNullOrEmpty(error))
-                {
-                    MessageBox.Show(this, error, "SMZ3 Cas’ Randomizer", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-            else
+            var rom = await _romGenerator.GenerateRandomRomAsync(Options);
+            if (rom != null)
             {
                 UpdateRomList();
                 QuickLaunchRom(rom);
@@ -181,7 +177,7 @@ namespace Randomizer.App
             }
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
             if (!Options.GeneralOptions.Validate())
             {
@@ -190,6 +186,20 @@ namespace Randomizer.App
                     "can start playing randomized SMZ3 games. Please do so now.",
                     "SMZ3 Cas’ Randomizer", MessageBoxButton.OK, MessageBoxImage.Information);
                 OptionsMenuItem_Click(this, new RoutedEventArgs());
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(Options.GeneralOptions.TwitchOAuthToken))
+            {
+                var isTokenValid = await _chatAuthenticationService.ValidateTokenAsync(Options.GeneralOptions.TwitchOAuthToken, default);
+                if (!isTokenValid)
+                {
+                    Options.GeneralOptions.TwitchOAuthToken = string.Empty;
+                    MessageBox.Show(this, "Your Twitch login has expired. Please" +
+                        " go to Options and log in with Twitch again to re-enable" +
+                        " chat integration features.", "SMZ3 Cas’ Randomizer",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -208,6 +218,7 @@ namespace Randomizer.App
             try
             {
                 Options.Save(OptionsFactory.GetFilePath());
+                App.SaveWindowPositionAndSize(this);
             }
             catch
             {
@@ -696,7 +707,7 @@ namespace Randomizer.App
             }
 
             var path = Path.Combine(Options.RomOutputPath, rom.SpoilerPath).Replace("Spoiler_Log", "Progression_Log");
-            var historyText = _historyService.GenerateHistoryText(rom, rom.TrackerState.History.ToList(), true);
+            var historyText = HistoryService.GenerateHistoryText(rom, rom.TrackerState.History.ToList(), true);
             File.WriteAllText(path, historyText);
             Process.Start(new ProcessStartInfo
             {

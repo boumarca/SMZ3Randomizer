@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Speech.Synthesis;
+using Randomizer.Data;
+using Randomizer.Data.Options;
 
 namespace Randomizer.SMZ3.Tracking.Services
 {
@@ -129,5 +131,11 @@ namespace Randomizer.SMZ3.Tracking.Services
         {
             _canSpeak = false;
         }
+
+        /// <summary>
+        /// If the communicator is currently enabled
+        /// </summary>
+        /// <returns>True if enabled, false otherwise</returns>
+        public bool IsEnabled => _canSpeak;
     }
 }

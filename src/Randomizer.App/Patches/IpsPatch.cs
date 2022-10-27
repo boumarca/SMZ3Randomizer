@@ -35,6 +35,40 @@ namespace Randomizer.App.Patches
         /// <returns>A new stream that contains the IPS patch.</returns>
         public static Stream Respin() => GetStream("spinjumprestart.ips");
 
-        public static Stream ShaktoolWithoutGrapple() => GetStream("Shaktool_without_grapple.ips");
+        /// <summary>
+        /// Gets a stream for the IPS patch the contains the nerfed charge patch.
+        /// </summary>
+        /// <returns>A new stream that contains the IPS patch.</returns>
+        public static Stream NerfedCharge() => GetStream("nerfed_charge.ips");
+
+        /// <summary>
+        /// Gets a stream for the IPS patch the contains the refill before saving patch.
+        /// </summary>
+        /// <returns>A new stream that contains the IPS patch.</returns>
+        public static Stream RefillAtSaveStation() => GetStream("refill_before_save.ips");
+
+        /// <summary>
+        /// Gets a stream for the IPS patch the contains the fast Super Metroid doors patch.
+        /// </summary>
+        /// <returns>A new stream that contains the IPS patch.</returns>
+        public static Stream FastDoors() => GetStream("fast_doors.ips");
+
+        /// <summary>
+        /// Gets a stream for the IPS patch the contains the fast Super Metroid elevators patch.
+        /// </summary>
+        /// <returns>A new stream that contains the IPS patch.</returns>
+        public static Stream FastElevators() => GetStream("elevators_speed.ips");
+
+        /// <summary>
+        /// Gets a stream for the IPS patch the contains the patch to customize the aim buttons.
+        /// </summary>
+        /// <returns>A new stream that contains the IPS patch.</returns>
+        public static Stream AimAnyButton() => GetStream("AimAnyButton.ips");
+
+        /// <summary>
+        /// Gets a stream for the IPS patch the contains the preserve momentum / speedkeep patch.
+        /// </summary>
+        /// <returns>A new stream that contains the IPS patch.</returns>
+        public static Stream SpeedKeep() => GetStream("rando_speed.ips");
     }
 }
