@@ -43,7 +43,7 @@ introskip_doorflags:
     sta $7ed8b8
 
     ; Set up open mode event bit flags
-    lda #$0001
+    lda.l config_events
     sta $7ed820
     
     lda #$0000
@@ -52,6 +52,7 @@ introskip_doorflags:
     sta.l !SRAM_ALTTP_EQUIPMENT_2
     sta.l !SRAM_ALTTP_COMPLETED
     sta.l !SRAM_ALTTP_RANDOMIZER_SAVED
+    sta.l !SRAM_ALTTP_FRESH_FILE
     sta.l !door_timer_tmp
     sta.l !door_adjust_tmp
     sta.l !add_time_tmp
@@ -87,3 +88,38 @@ introskip_doorflags:
 .ret:   
     lda #$0000
     rtl
+
+; Setup moonwalk code
+org $81b35d
+JSR init_moonwalk
+
+ORG $81EE00
+init_moonwalk:
+    LDA moonwalk_setting : STA $09e4
+    RTS
+
+org $81EE80
+moonwalk_setting:
+    dw $0000
+
+; Setup SM starting equipment
+org $81B306
+JSR init_sm_equipment
+
+org $81EF20
+init_sm_equipment:
+    LDX #$0000 : LDA.w starting_sm_equipment, X : STA $09A2 : STA $09A4 ; Equipment
+    LDX #$0002 : LDA.w starting_sm_equipment, X : STA $09A6 : STA $09A8 ; Beams
+    AND #$000C : CMP #$000C : BNE +
+        LDA $09A6 : AND #$000B : STA $09A6 ; If both plasma and spazer are given, unequip spazer
+    +
+    LDX #$0004 : LDA.w starting_sm_equipment, X : STA $09C2 : STA $09C4 ; Energy
+    LDX #$0006 : LDA.w starting_sm_equipment, X : STA $09C6 : STA $09C8 ; Missiles
+    LDX #$0008 : LDA.w starting_sm_equipment, X : STA $09CA : STA $09CC ; Supers
+    LDX #$000A : LDA.w starting_sm_equipment, X : STA $09CE : STA $09D0 ; Power Bombs
+    RTS
+
+org $81EF90
+starting_sm_equipment:
+DW #$0000,#$0000,#$0063 ; Equipment, Beams, Energy
+DW #$0000,#$0000,#$0000 ; Missiles, Supers, Power Bombs

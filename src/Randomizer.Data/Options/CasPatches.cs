@@ -9,13 +9,25 @@ namespace Randomizer.Data.Options
 {
     public class CasPatches
     {
-        [DisplayName("Disable flashing (Zelda only)")]
-        [Description("Disables flashing effects from things like Ether.")]
+        [DisplayName("Disable flashing")]
+        [Description("Disables many flashing effects from things like Ether, lightning, and Metroid bosses. Note some flashing may still exist unfortunately.\nMetroid patch developed by Kara.")]
         public bool DisableFlashing { get; set; } = true;
+
+        [DisplayName("Disable screen shake (Metroid)")]
+        [Description("Disables the screen shake effect during escape and when lava/acid is rising.\nPatch developed by flo.")]
+        public bool DisableScreenShake { get; set; } = true;
 
         [DisplayName("Prevent Scams")]
         [Description("The bottle merchant and King Zora will tell you what they have before asking if you want to purchase it, even if you don't have enough rupees.")]
         public bool PreventScams { get; set; } = true;
+
+        [DisplayName("Randomized Bottles")]
+        [Description("Adds randomly filled bottles instead of empty bottles and random fairy bottle trades.")]
+        public bool RandomizedBottles { get; set; } = true;
+
+        [DisplayName("Quarter Magic")]
+        [Description("Adds an additional progressive half magic to the item pool.")]
+        public bool QuarterMagic { get; set; } = true;
 
         [DisplayName("Aim with Any Button")]
         [Description("Allows you to map the aiming button to any button.\nPatch developed by Kejardon.")]
@@ -52,6 +64,14 @@ namespace Randomizer.Data.Options
         [DisplayName("Refill at Save Stations")]
         [Description("Save stations will refill your ammo.\nPatch developed by Adam.")]
         public bool RefillAtSaveStation { get; set; } = true;
+
+        [DisplayName("Easier Wall Jumps")]
+        [Description("Makes the timing of wall jumps more leniant.\nPatch developed by Benox50.")]
+        public bool EasierWallJumps { get; set; } = true;
+
+        [DisplayName("Snap Morph to Holes")]
+        [Description("Makes it easier to get into morph ball holes and allows you to morph over some 1 tile wide pits.\nPatch developed by Benox50.")]
+        public bool SnapMorph { get; set; } = true;
 
         public CasPatches Clone()
         {

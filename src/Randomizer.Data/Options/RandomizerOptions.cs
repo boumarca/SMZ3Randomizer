@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Randomizer.Data.Logic;
-using Randomizer.Shared;
 
 namespace Randomizer.Data.Options
 {
@@ -62,12 +61,14 @@ namespace Randomizer.Data.Options
         public bool CustomizationExpanded { get; set; } = false;
         public bool LogicExpanded { get; set; } = false;
 
-        public bool CommonExpanded { get; set; } = true;
+        public bool CommonExpanded { get; set; } = false;
+        public bool MetroidControlsExpanded { get; set; } = false;
 
         public double WindowWidth { get; set; } = 500d;
 
         public double WindowHeight { get; set; } = 600d;
 
+        public string MultiplayerUrl { get; set; } = "";
 
         public string RomOutputPath
         {
@@ -135,25 +136,30 @@ namespace Randomizer.Data.Options
                     LinkName = PatchOptions.LinkSprite == Sprite.DefaultLink ? "Link" : PatchOptions.LinkSprite.Name,
                     SamusName = PatchOptions.SamusSprite == Sprite.DefaultSamus ? "Samus" : PatchOptions.SamusSprite.Name,
                     LocationItems = SeedOptions.LocationItems,
-                    EarlyItems = SeedOptions.EarlyItems,
                     LogicConfig = LogicConfig.Clone(),
                     CasPatches = PatchOptions.CasPatches.Clone(),
                     CopySeedAndRaceSettings = true,
                     Seed = SeedOptions.Seed,
                     UniqueHintCount = SeedOptions.UniqueHintCount,
+                    GanonsTowerCrystalCount = SeedOptions.GanonsTowerCrystalCount,
+                    GanonCrystalCount = SeedOptions.GanonCrystalCount,
+                    OpenPyramid = SeedOptions.OpenPyramid,
+                    TourianBossCount = SeedOptions.TourianBossCount,
+                    MetroidControls = PatchOptions.MetroidControls.Clone(),
+                    ItemOptions = SeedOptions.ItemOptions,
                 };
                 return config;
             }
             else
             {
-                var oldConfig = Config.FromConfigString(SeedOptions.ConfigString);
+                var oldConfig = Config.FromConfigString(SeedOptions.ConfigString).First();
 
                 var race = SeedOptions.Race;
                 var disableSpoilerLog = SeedOptions.DisableSpoilerLog;
                 var disableTrackerHints = SeedOptions.DisableTrackerHints;
                 var disableTrackerSpoilers = SeedOptions.DisableTrackerSpoilers;
                 var disableCheats = SeedOptions.DisableCheats;
-                var uniqueHintcount = SeedOptions.UniqueHintCount;
+                var casPatches = PatchOptions.CasPatches.Clone();
                 var seed = SeedOptions.Seed;
 
                 if (SeedOptions.CopySeedAndRaceSettings)
@@ -163,7 +169,7 @@ namespace Randomizer.Data.Options
                     disableTrackerHints = oldConfig.DisableTrackerHints;
                     disableTrackerSpoilers = oldConfig.DisableTrackerSpoilers;
                     disableCheats = oldConfig.DisableCheats;
-                    uniqueHintcount = oldConfig.UniqueHintCount;
+                    casPatches = oldConfig.CasPatches;
                     seed = oldConfig.Seed;
                 }
 
@@ -188,12 +194,17 @@ namespace Randomizer.Data.Options
                     LinkName = PatchOptions.LinkSprite == Sprite.DefaultLink ? "Link" : PatchOptions.LinkSprite.Name,
                     SamusName = PatchOptions.SamusSprite == Sprite.DefaultSamus ? "Samus" : PatchOptions.SamusSprite.Name,
                     LocationItems = oldConfig.LocationItems,
-                    EarlyItems = oldConfig.EarlyItems,
                     LogicConfig = oldConfig.LogicConfig,
-                    CasPatches = oldConfig.CasPatches,
+                    CasPatches = casPatches,
                     SettingsString = SeedOptions.ConfigString,
-                    UniqueHintCount = uniqueHintcount,
-                    CopySeedAndRaceSettings = SeedOptions.CopySeedAndRaceSettings
+                    UniqueHintCount = oldConfig.UniqueHintCount,
+                    CopySeedAndRaceSettings = SeedOptions.CopySeedAndRaceSettings,
+                    GanonsTowerCrystalCount = oldConfig.GanonsTowerCrystalCount,
+                    GanonCrystalCount = oldConfig.GanonCrystalCount,
+                    OpenPyramid = oldConfig.OpenPyramid,
+                    TourianBossCount = oldConfig.TourianBossCount,
+                    MetroidControls = PatchOptions.MetroidControls.Clone(),
+                    ItemOptions = oldConfig.ItemOptions,
                 };
             }
         }

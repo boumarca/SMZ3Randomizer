@@ -17,26 +17,10 @@ namespace Randomizer.Data.Options
     public class SeedOptions
     {
         [JsonIgnore]
-        public string Seed { get; set; }
+        public string Seed { get; set; } = "";
 
         [JsonIgnore]
-        public string ConfigString { get; set; }
-
-        public ItemPlacement SwordLocation { get; set; }
-
-        public ItemPlacement MorphLocation { get; set; }
-
-        public ItemPlacement MorphBombsLocation { get; set; }
-
-        public ItemPlacement PegasusBootsLocation { get; set; }
-
-        public ItemPlacement SpaceJumpLocation { get; set; }
-
-        public ItemPool ShaktoolItem { get; set; }
-
-        public ItemPool PegWorldItem { get; set; }
-
-        public bool Keysanity { get; set; }
+        public string ConfigString { get; set; } = "";
 
         public KeysanityMode KeysanityMode { get; set; } = KeysanityMode.None;
 
@@ -54,14 +38,19 @@ namespace Randomizer.Data.Options
 
         public int UniqueHintCount { get; set; } = 8;
 
+        public int GanonsTowerCrystalCount { get; set; } = 7;
+        public int GanonCrystalCount { get; set; } = 7;
+        public bool OpenPyramid { get; set; } = false;
+        public int TourianBossCount { get; set; } = 4;
+
         [JsonIgnore]
         public int MaxHints => 15;
 
         [JsonIgnore]
         public bool CopySeedAndRaceSettings { get; set; }
 
-        public ISet<ItemType> EarlyItems { get; set; } = new HashSet<ItemType>();
-
         public IDictionary<int, int> LocationItems { get; set; } = new Dictionary<int, int>();
+
+        public IDictionary<string, int> ItemOptions { get; set; } = new Dictionary<string, int>();
     }
 }

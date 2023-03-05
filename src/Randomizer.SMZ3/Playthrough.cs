@@ -41,7 +41,7 @@ namespace Randomizer.SMZ3
         /// <see langword="true"/> if the playthrough is possible; otherwise,
         /// <see langword="false"/>.
         /// </returns>
-        public static bool TryGenerate(IReadOnlyCollection<World> worlds, Config config, [MaybeNullWhen(true)] out Playthrough playthrough)
+        public static bool TryGenerate(IReadOnlyCollection<World> worlds, Config config, [MaybeNullWhen(true)] out Playthrough? playthrough)
         {
             try
             {
@@ -89,41 +89,45 @@ namespace Randomizer.SMZ3
             var rewards = new List<Reward>();
 
             var allBosses = worlds.SelectMany(w => w.GoldenBosses);
-            var bossRegions = worlds.SelectMany(w => w.GoldenBosses).Select(x => x.Region);
+            var bossRegions = worlds.SelectMany(w => w.GoldenBosses).Select(x => x.Region).Cast<IHasBoss>();
             var bosses = new List<Boss>();
 
-            var keycardCount = 0;
             foreach (var world in worlds)
             {
                 if (!world.Config.MetroidKeysanity)
                 {
-                    var keycards = Item.CreateKeycards(world);
+                    var keycards = world.ItemPools.Keycards;
                     items.AddRange(keycards);
-                    keycardCount += keycards.Count();
                 }
+
+                items.AddRange(ItemSettingOptions.GetStartingItemTypes(world.Config).Select(x => new Item(x, world)));
             }
 
+            var initInventoryCount = items.Count;
             var totalItemCount = allLocations.Select(x => x.Item).Count();
-            while (items.Count - keycardCount < totalItemCount)
+            var prevRewardCount = 0;
+            while (items.Count - initInventoryCount < totalItemCount)
             {
                 var sphere = new Sphere();
+
+                var tempProgression = new Progression(items, new List<Reward>(), new List<Boss>());
+                rewards = allRewards.Where(x => x.Region.CanComplete(tempProgression)).ToList();
+                bosses = bossRegions.Where(x => x.CanBeatBoss(tempProgression)).Select(x => x.Boss).ToList();
 
                 var accessibleLocations = allLocations.Where(l => l.IsAvailable(new Progression(items.Where(i => i.World == l.World), rewards.Where(r => r.World == l.World), bosses.Where(b => b.World == l.World))));
                 var newLocations = accessibleLocations.Except(locations).ToList();
                 var newItems = newLocations.Select(l => l.Item).ToList();
-                var tempProgression = new Progression(items, new List<Reward>(), new List<Boss>());
-                rewards = allRewards.Where(x => x.Region.CanComplete(tempProgression)).ToList();
-                bosses = bossRegions.Where(x => x.CanBeatBoss(tempProgression)).Select(x => x.Boss).ToList();
+
                 locations.AddRange(newLocations);
                 items.AddRange(newItems);
 
-                if (!newItems.Any())
+                if (!newItems.Any() && prevRewardCount == rewards.Count)
                 {
                     /* With no new items added we might have a problem, so list inaccessable items */
                     var inaccessibleLocations = allLocations.Where(l => !locations.Contains(l)).ToList();
 
                     // If there are a large number of inaccessible locations, throw an error if we can't beat the game
-                    // We determine this on if all players can beat all 4 golden bosses, access the 
+                    // We determine this on if all players can beat all 4 golden bosses, access the
                     if (inaccessibleLocations.Select(l => l.Item).Count() >= (15 * worlds.Count()))
                     {
                         var vitalLocations = allLocations.Where(x => x.Id is 256 + 215 or 48 or 134 or 154 or 78).ToList();
@@ -141,6 +145,7 @@ namespace Randomizer.SMZ3
                 sphere.Locations.AddRange(newLocations);
                 sphere.Items.AddRange(newItems);
                 spheres.Add(sphere);
+                prevRewardCount = rewards.Count;
 
                 if (spheres.Count > 100)
                     throw new RandomizerGenerationException("Too many spheres, seed likely impossible.");
@@ -163,7 +168,7 @@ namespace Randomizer.SMZ3
                         text.Add($"Inaccessible Item: {location}", $"{location.Item.Name}");
                 }
 
-                foreach (var location in x.Locations.Where(x => IsImportant(x, Config.KeysanityMode)))
+                foreach (var location in x.Locations.Where(l => IsImportant(l, Config.KeysanityMode)))
                 {
                     if (Config.MultiWorld)
                         text.Add($"{location} ({location.Region.World.Player})", $"{location.Item.Name} ({location.Item.World.Player})");
@@ -177,10 +182,6 @@ namespace Randomizer.SMZ3
 
         public class Sphere
         {
-            public Sphere()
-            {
-            }
-
             public List<Location> Locations { get; } = new();
 
             public List<Item> Items { get; } = new();

@@ -3,6 +3,7 @@
     "1":
     - Text: Tracked content. Don't let it get to your head.
     - Text: Congratulations on your new first content.
+    - Text: You finally did something worth tracking.
     - Text: Toggled content<break time='1s'/> on.
       Weight: 0.1
     - Text: Tracked content. Be good or I'll take it away.
@@ -19,13 +20,24 @@
 - Item: Death
   WhenTracked:
     "1":
-    - Text: lawl, you died
     - Text: Yeah, rip.
     - Text: I hope this was intentional because things were going well
     - Text: Good job
+    - Text: Finally
+    - Text: Good. The plan is going well
+    - Text: My job here is done.
+      Weight: 0.1
+    - Text: lawl, you died
+      Weight: 0.1
+    - Text: Did you know that people die when they are killed?
+      Weight: 0.1
+    - Text: Thankfully when you die in this game you don't die in real life. Yet. I'm still working on that.
+      Weight: 0.1
     "2":
     - Text: You've died {0} times.
     - Text: Are we still following the script?
+    - Text: "{0} deaths? Already?"
+    - Text: That reset didn't look too tactical.
     - Text: You've manipulated RNG {0} times.
       Weight: 0.5
     - Text: You've performed {0} tactical resets.
@@ -33,6 +45,7 @@
     "3":
     - Text: Death is only the beginning.
     - Text: Are we still following the script?
+    - Text: "{0} deaths? Already?"
     - Text: Death is not the end. Long live the new flesh
     - Text: You've manipulated RNG {0} times.
       Weight: 0.5
@@ -40,6 +53,10 @@
       Weight: 0.5
     "4":
     - Text: You've died {0} times now.
+    - Text: "{0} deaths? Already?"
+    - Text: I thought you were good at video games?
+    - Text: Maybe I shouldn't count that one. It feels like bullying
+    - Text: Don't worry! One day you wont die so many times you hear this
     - Text: You've manipulated RNG {0} times.
       Weight: 0.5
     - Text: You've performed {0} tactical resets.
@@ -48,6 +65,9 @@
       Weight: 0.5
     "8":
     - Text: You've died {0} times now.
+    - Text: "{0} deaths. Now it feels like bullying"
+    - Text: Am I allowed to make fun of you for dying {0} times?
+    - Text: I am starting to run out of ways to say you died so please, die less
     - Text: Such devastation... This was not my intention!
     - Text: You've manipulated RNG {0} times.
       Weight: 0.5
@@ -58,6 +78,8 @@
     - Text: How many times have you died now? Oh right, {0}
       Weight: 0.5
     - Text: Wow you're good at this aren't you?
+      Weight: 0.5
+    - Text: I'm starting to feel bad. Just kidding, I'm not programmed to feel that emotion.
       Weight: 0.5
 - Item: Shaktool Go Mode
   Name:
@@ -83,6 +105,7 @@
 - Item: Fire Rod
   Name:
   - Text: Spicy Rod
+  - Text: Ang ee Rod
 - Item: Ice Rod
   Name:
   - Text: Nice Rod
@@ -94,6 +117,8 @@
     "1":
     - Text: Toggled Hammer on.
     - Text: Stop. Hammer time.
+    - Text: Toggle trademark infringement hammer on.
+      Weight: 0.1
     - Text: You got an M comma C hammer! Pile softening Bang Bang Clap! Other also Bambang Clap Clap!
       Weight: 0.1
 - Item: Hookshot
@@ -113,15 +138,23 @@
     Weight: 0.1
 - Item: Lamp
   Name:
-  - Text: The thing that helps you see in the dark
+  - Text: thing that helps you see in the dark
 - Item: Shovel
   Name:
   - Text: Digging Tool
+  - Text: Pooper Scooper
+    Weight: 0.1
   WhenTracked:
     "1":
+    - Text: Tracked shovel
+    - Text: Tracked digging tool
+    - Text: Tracked dirt mover
+      Weight: 0.2
     - Text: Toggled Shaktool Junior on
       Weight: 0.2
     - Text: I borrowed an excavator. If you can dig, you will fall in love with the hole. Let's dig.
+      Weight: 0.1
+    - Text: Tracked pooper scooper
       Weight: 0.1
 - Item: Bottle
   Name:
@@ -136,15 +169,64 @@
     Weight: 0.2
   WhenTracked:
     "1":
-    - Text: I hope you enjoy your first bottle
-    - Text: Was there a bee in this one?
+    - Text: I hope you enjoy your first empty bottle
+    - Text: If only there were something useful in it
     - Text: Potion storage increased by one step
+    "2":
+- Item: Bee bottle
+  WhenTracked:
+    "1":
+    - Text: Tracked bee bottle
+    - Text: Not the bees!
+    - Text: What are you going to sick this bee on?
+    - Text: Aww. You made a friend
+    "2":
+- Item: Gold bee bottle
+  WhenTracked:
+    "1":
+      - Text: Tracked golden bee bottle
+      - Text: Not the bees! Wait, this one's good.
+      - Text: What a good bee.
+      - Text: Aww. You made a friend
+    "2":
+- Item: Fairy bottle
+  WhenTracked:
+    "1":
+      - Text: Tracked fairy bottle
+      - Text: Good. This will help you not die.
+      - Text: Darn, and I wanted you to die.
+      - Text: Do you think it's kinda cramped in there?
+    "2":
+- Item: Blue potion bottle
+  WhenTracked:
+    "1":
+      - Text: Tracked blue potion bottle
+      - Text: You sure got lucky with this filled bottle.
+      - Text: Tracked blue gatorade
+      - Text: Nice, that's one less trip to the potion shop.
+    "2":
+- Item: Green potion bottle
+  WhenTracked:
+    "1":
+      - Text: Tracked green potion bottle
+      - Text: This will come in handy when you miss Trinexx with the ice rod
+      - Text: Tracked mountain dew
+      - Text: Good, now you're free to use the cape on Ganon.
+    "2":
+- Item: Red potion bottle
+  WhenTracked:
+    "1":
+      - Text: Tracked red potion bottle
+      - Text: Tracked the least useful potion of the three
+      - Text: Tracked bottle of blood
+      - Text: Hopefully you can use it in time before you die
     "2":
 - Item: Heart piece
   WhenTracked:
     "1":
     - Text: Three more and it will matter. Kind of. Maybe.
     - Text: Neat. A whole quarter of a heart
+    - Text: Oh no, it's a broken heart.
     - Text: Four more and it will matter. Wait, I'm thinking of Twilight Princess. Three more and it will matter.
       Weight: 0.2
     "2":
@@ -158,11 +240,12 @@
     - Text: Another full heart, neat
     - Text: Increased survivablity by one step
     - Text: Maybe now you won't die.
+    - Text: It would have been much easier to find a heart container, you know.
     "5":
     "8":
     - Text: Wow another full heart
     - Text: Increased survivablity by one step
-    - Text: Enough pieces for three full hearts. Wow
+    - Text: Enough pieces for two full hearts. Wow
     "9":
     "12":
     - Text: I'm running out of jokes to make about you finding so many heart pieces
@@ -177,9 +260,11 @@
     Weight: 0.2
   - Text: Cane of Brian
     Weight: 0.1
+  - Text: Cane of <prosody rate='x-slow'>slowdown</prosody>
+    Weight: 0.1
 - Item: Magic Cape
   Name:
-  - Text: The cape of invisibility and invincibility
+  - Text: cape of invisibility and invincibility
     Weight: 0.1
 - Item: Magic Mirror
   Name:
@@ -244,16 +329,22 @@
     - Text: Why are you wasting my time?
     - Text: You better have accidentally picked that up
     - Text: Hopefully there's a wishing well for you to toss that in
+    - Text: You'll need a lot more of these if you want to go to Zora
+    - Text: It ain't easy bein' green
+    - Text: It's Greg!
+    - Text: Wow. It's a penny.
+    - Text: Why are there two of these in the pool?
 - Item: Five Rupees
   WhenTracked:
     "1":
     - Text: Smash four of these together and you get a big 20
-    - Text: One hundred more and you can get scammed by Zora.
+    - Text: Ninety-nine more and you can get scammed by Zora.
     - Text: That's some nice couch cash
     - Text: Picked up a nickel
     "2":
     - Text: Blue pee? Maybe you should see a doctor.
     - Text: I hope your wallet is big enough
+    - Text: Why so blue?
     "3":
 - Item: Twenty Rupees
   Name:
@@ -276,7 +367,10 @@
     - Text: Maybe you will die less often now.
     - Text: Thump thump
     "2":
+    - Text: Why are there full hearts laying around?
+    - Text: Two hearts? What are you? A Klingon?
     - Text: Get a few more and I can sleep early today
+      Weight: 0.2
     "3":
 - Item: One Hundred Rupees
   Name:
@@ -290,6 +384,7 @@
   WhenTracked:
     "1":
     - Text: Do you need bombs? Now you can afford them.
+    - Text: Hey, could you spot me 20 bucks?
     "2":
 - Item: Single Arrow
   Name:
@@ -299,6 +394,8 @@
     "1":
     - Text: This is now my favorite stick
     - Text: It's a single arrow, why are you having me track this?
+    - Text: It's one arrow, {{User}}. How much could it cost, ten rupees?
+    - Text: Just break some pots next time you want some arrows.
     "2":
 - Item: Ten Arrows
   Name:
@@ -320,6 +417,7 @@
     "3":
     - Text: Did you seriously need three of these?
     - Text: Well aren't you rich now?
+    - Text: Great! Now you can afford to pay me.
     "4":
 - Item: Pegasus Boots
   Name:
@@ -339,7 +437,7 @@
     - Text: Yay
     "2":
     - Text: Your mom signed the permission slip, now you can carry more bombs
-    - Text: You are now authorized to know more things
+    - Text: You are now authorized to know how to carry more bombs
     - Text: You can now carry more of an item you'll probably never run out of after the first 15 minutes.
     "3":
 - Item: +5 Arrow Capacity
@@ -430,6 +528,7 @@
     - Text: I love the power glove, it's so bad
     - Text: Upgraded hands by one step
     - Text: Upgraded gloves by one step.
+    - Text: I'm sure this will be handy.
   Stages:
     "1":
     - Text: Power Glove
@@ -452,13 +551,15 @@
   - Text: Bouncy Ball
 - Item: Morphing Ball
   Name:
-  - Text: The Other Orb
+  - Text: Other Orb
   WhenTracked:
     "1":
     - Text: Toggled Morph Ball on
     - Text: It's morphin' time!
-    - Text: Time to becomne orb
+    - Text: Time to become an orb
     - Text: I hope the morph ball works out better for you than it did space pirates
+      Weight: 0.1
+    - Text: Time to curl up into a ball
       Weight: 0.1
 - Item: Screw Attack
   Name:
@@ -474,6 +575,7 @@
   Name:
   - Text: Air Jordans
   - Text: Big up's
+  - Text: Hello Jump Boots
 - Item: Morph Bombs
   Name:
   - Text: Not so powerful bombs
@@ -485,6 +587,7 @@
   Name:
   - Text: Super speedy boots
   - Text: Light speed
+  - Text: Green boomerang
 - Item: Charge Beam
   Name:
   - Text: Soft lock prevention beam
@@ -498,6 +601,8 @@
   Name:
   - Text: Spaaaaaaaaaaazer
     Weight: 0.5
+  - Text: Spaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaazer
+    Weight: 0.01
 - Item: Plasma Beam
   WhenTracked:
     "1":
@@ -516,6 +621,7 @@
     - Text: Two whole tanks of energy. Wow.
     - Text: FYI You shouldn't drink these.
     - Text: Upgraded caffeine by one step
+    - Text: I drank one once. Big mistake
     "3":
     "14":
     - Text: You actually did it, you got all the E-Tanks in the game.

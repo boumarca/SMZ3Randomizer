@@ -29,7 +29,7 @@ namespace Randomizer.SMZ3.Tests.LogicTests
                 var displayName = property.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName;
                 displayName.Should().NotBeNullOrEmpty();
 
-                var category = property.GetCustomAttribute<CategoryAttribute>().Category;
+                var category = property.GetCustomAttribute<CategoryAttribute>()?.Category;
                 category.Should().BeOneOf("Logic", "Tricks", "Patches");
             }
         }
@@ -409,6 +409,66 @@ namespace Randomizer.SMZ3.Tests.LogicTests
             progression = new Progression(items.Append(ItemType.Somaria), Array.Empty<RewardType>(), Array.Empty<BossType>());
             missingItems = Logic.GetMissingRequiredItems(tempWorld.IcePalace.KholdstareReward, progression, out _);
             missingItems.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void TestEasyBlueBrinstarTop()
+        {
+            var config = new Config { LogicConfig = { EasyBlueBrinstarTop = false, }, KeysanityMode = KeysanityMode.None };
+
+            var tempWorld = new World(config, "", 0, "");
+            var progression = new Progression(new[] { ItemType.Morph, ItemType.PowerBomb, ItemType.CardBrinstarL1 }, new List<RewardType>(), new List<BossType>());
+            Logic.GetMissingRequiredItems(tempWorld.BlueBrinstar.BlueBrinstarTop.MainItem, progression, out _).Should().BeEmpty();
+            Logic.GetMissingRequiredItems(tempWorld.BlueBrinstar.BlueBrinstarTop.HiddenItem, progression, out _).Should().BeEmpty();
+            tempWorld.BlueBrinstar.BlueBrinstarTop.MainItem.IsAvailable(progression).Should().BeTrue();
+            tempWorld.BlueBrinstar.BlueBrinstarTop.HiddenItem.IsAvailable(progression).Should().BeTrue();
+
+            config.LogicConfig.EasyBlueBrinstarTop = true;
+            tempWorld = new World(config, "", 0, "");
+            Logic.GetMissingRequiredItems(tempWorld.BlueBrinstar.BlueBrinstarTop.MainItem, progression, out _).Should().HaveCount(2)
+                .And.ContainEquivalentOf(new[] { ItemType.SpaceJump })
+                .And.ContainEquivalentOf(new[] { ItemType.Gravity });
+            Logic.GetMissingRequiredItems(tempWorld.BlueBrinstar.BlueBrinstarTop.HiddenItem, progression, out _).Should().HaveCount(2)
+                .And.ContainEquivalentOf(new[] { ItemType.SpaceJump })
+                .And.ContainEquivalentOf(new[] { ItemType.Gravity });
+            tempWorld.BlueBrinstar.BlueBrinstarTop.MainItem.IsAvailable(progression).Should().BeFalse();
+            tempWorld.BlueBrinstar.BlueBrinstarTop.HiddenItem.IsAvailable(progression).Should().BeFalse();
+
+            progression = new Progression(new[] { ItemType.Morph, ItemType.PowerBomb, ItemType.Gravity, ItemType.CardBrinstarL1 }, new List<RewardType>(), new List<BossType>());
+            Logic.GetMissingRequiredItems(tempWorld.BlueBrinstar.BlueBrinstarTop.MainItem, progression, out _).Should().BeEmpty();
+            Logic.GetMissingRequiredItems(tempWorld.BlueBrinstar.BlueBrinstarTop.HiddenItem, progression, out _).Should().BeEmpty();
+            tempWorld.BlueBrinstar.BlueBrinstarTop.MainItem.IsAvailable(progression).Should().BeTrue();
+            tempWorld.BlueBrinstar.BlueBrinstarTop.HiddenItem.IsAvailable(progression).Should().BeTrue();
+
+            progression = new Progression(new[] { ItemType.Morph, ItemType.PowerBomb, ItemType.SpaceJump, ItemType.CardBrinstarL1 }, new List<RewardType>(), new List<BossType>());
+            Logic.GetMissingRequiredItems(tempWorld.BlueBrinstar.BlueBrinstarTop.MainItem, progression, out _).Should().BeEmpty();
+            Logic.GetMissingRequiredItems(tempWorld.BlueBrinstar.BlueBrinstarTop.HiddenItem, progression, out _).Should().BeEmpty();
+            tempWorld.BlueBrinstar.BlueBrinstarTop.MainItem.IsAvailable(progression).Should().BeTrue();
+            tempWorld.BlueBrinstar.BlueBrinstarTop.HiddenItem.IsAvailable(progression).Should().BeTrue();
+        }
+
+        [Fact]
+        public void TestZoraNeedsRupeeItems()
+        {
+            var config = new Config { LogicConfig = { ZoraNeedsRupeeItems = false, }};
+
+            var tempWorld = new World(config, "", 0, "");
+            var progression = new Progression(new[] { ItemType.Flippers, ItemType.ThreeHundredRupees}, new List<RewardType>(), new List<BossType>());
+            Logic.GetMissingRequiredItems(tempWorld.LightWorldNorthEast.ZorasDomain.Zora, progression, out _).Should().BeEmpty();
+            tempWorld.LightWorldNorthEast.ZorasDomain.Zora.IsAvailable(progression).Should().BeTrue();
+
+            config.LogicConfig.ZoraNeedsRupeeItems = true;
+            tempWorld = new World(config, "", 0, "");
+            var items = Logic.GetMissingRequiredItems(tempWorld.LightWorldNorthEast.ZorasDomain.Zora, progression,
+                out _);
+            Logic.GetMissingRequiredItems(tempWorld.LightWorldNorthEast.ZorasDomain.Zora, progression, out _).Should()
+                .HaveCount(1)
+                .And.ContainEquivalentOf(new[] { ItemType.ThreeHundredRupees });
+            tempWorld.LightWorldNorthEast.ZorasDomain.Zora.IsAvailable(progression).Should().BeFalse();
+
+            progression = new Progression(new[] { ItemType.Flippers, ItemType.ThreeHundredRupees, ItemType.ThreeHundredRupees }, new List<RewardType>(), new List<BossType>());
+            Logic.GetMissingRequiredItems(tempWorld.LightWorldNorthEast.ZorasDomain.Zora, progression, out _).Should().BeEmpty();
+            tempWorld.LightWorldNorthEast.ZorasDomain.Zora.IsAvailable(progression).Should().BeTrue();
         }
     }
 }

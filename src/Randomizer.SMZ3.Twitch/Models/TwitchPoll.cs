@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using Randomizer.SMZ3.ChatIntegration.Models;
 
 namespace Randomizer.SMZ3.Twitch.Models
@@ -20,13 +18,13 @@ namespace Randomizer.SMZ3.Twitch.Models
         public string? Title { get; set; }
 
         [JsonPropertyName("choices")]
-        public ICollection<TwitchPollChoice>? Choices { get; set; }
+        public ICollection<TwitchPollChoice>? Choices { get; init; }
 
         [JsonPropertyName("duration")]
         public int? Duration { get; set; }
 
         [JsonPropertyName("status")]
-        public string? Status { get; set; }
+        public new string? Status { get; set; }
 
         /// <summary>
         /// If the poll was finished, be it complete or closed
@@ -36,7 +34,7 @@ namespace Randomizer.SMZ3.Twitch.Models
         /// <summary>
         /// If a poll was finished successfully
         /// </summary>
-        public bool IsPollSuccessful => WinningChoice != null && "COMPLETED".Equals(Status, StringComparison.OrdinalIgnoreCase);
+        public bool IsPollSuccessful => WinningChoice?.Votes > 0;
 
         /// <summary>
         /// Returns choice that was voted on the most

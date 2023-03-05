@@ -35,10 +35,20 @@ namespace Randomizer.Data.Logic
         [Category("Logic")]
         public bool EasyEastCrateriaSkyItem { get; set; }
 
+        [DisplayName("Easy Blue Brinstar Top Access")]
+        [Description("You're expected to have the space jump or gravity suit to get to the room up at the top of blue brinstar with the two items.")]
+        [Category("Logic")]
+        public bool EasyBlueBrinstarTop { get; set; }
+
         [DisplayName("Kholdstare Needs Somaria")]
         [Description("You're expected to have the Cane of Somaria to get to Kholdstare to prevent from having to clear Ice Palace the vanilla way.")]
         [Category("Logic")]
         public bool KholdstareNeedsCaneOfSomaria { get; set; }
+
+        [DisplayName("Zora Needs Rupee Items")]
+        [Description("You're expected to find enough rupee items at locations in order to purchase the item from Zora so that you don't have to farm rupees from enemies, the Houlihan room, etc.")]
+        [Category("Logic")]
+        public bool ZoraNeedsRupeeItems { get; set; }
 
         [DisplayName("Fire Rod for Dark Rooms")]
         [Description("You're expected to be able to use the fire rod to light torches for navigating Hyrule Castle escape, Eastern Palace Armos Knights, and select rooms in Palace of Darkness.")]

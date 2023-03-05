@@ -2,7 +2,6 @@
 using System.Linq;
 
 using Randomizer.Shared;
-using Randomizer.Shared.Enums;
 using Randomizer.SMZ3.Contracts;
 using Randomizer.Data.WorldData.Regions;
 using Randomizer.Data.WorldData.Regions.Zelda.DarkWorld;
@@ -44,10 +43,12 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking.ZeldaStateChecks
         {
             if (tracker.AutoTracker == null) return false;
 
-            if (currentState.State == 14 && currentState.Substate == 7 && currentState.ReadUInt8(0xE0) == 0x80 && (tracker.AutoTracker.LatestViewAction == null || !tracker.AutoTracker.LatestViewAction.IsValid))
+            if (currentState.State == 14 && currentState.Substate == 7 && currentState.ReadUInt8(0xE0) == 0x80)
             {
                 _tracker = tracker;
-                var currentRegion = tracker.CurrentRegion?.GetRegion(tracker.World);
+                var currentRegion = tracker.World.Regions
+                    .OfType<Z3Region>()
+                    .FirstOrDefault(x => x.StartingRooms != null && x.StartingRooms.Contains(currentState.OverworldScreen) && x.IsOverworld);
                 if (currentRegion is LightWorldNorthWest or LightWorldNorthEast or LightWorldSouth or LightWorldDeathMountainEast or LightWorldDeathMountainWest)
                 {
                     tracker.AutoTracker.LatestViewAction = new AutoTrackerViewedAction(UpdateLightWorldRewards);
@@ -85,8 +86,8 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking.ZeldaStateChecks
                 var rewardRegion = (IHasReward)region;
                 if (dungeon.DungeonState.MarkedReward != dungeon.DungeonState.Reward)
                 {
-                    rewards.Add(rewardRegion.Reward.Type);
-                    _tracker.SetDungeonReward(dungeon, rewardRegion.Reward.Type);
+                    rewards.Add(rewardRegion.RewardType);
+                    _tracker.SetDungeonReward(dungeon, rewardRegion.RewardType);
                 }
             }
 
@@ -132,8 +133,8 @@ namespace Randomizer.SMZ3.Tracking.AutoTracking.ZeldaStateChecks
                 }
             }
 
-            var isMiseryMirePendant = World.MiseryMire.RewardType is RewardType.PendantGreen or RewardType.PendantRed or RewardType.PendantBlue;
-            var isTurtleRockPendant = World.TurtleRock.RewardType is RewardType.PendantGreen or RewardType.PendantRed or RewardType.PendantBlue;
+            var isMiseryMirePendant = (World.MiseryMire as IDungeon).IsPendantDungeon;
+            var isTurtleRockPendant = (World.TurtleRock as IDungeon).IsPendantDungeon;
 
             if (!World.Config.ZeldaKeysanity && isMiseryMirePendant && isTurtleRockPendant)
             {

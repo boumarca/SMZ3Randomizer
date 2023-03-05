@@ -25,15 +25,17 @@ namespace Randomizer.SMZ3.Tests.LogicTests
     {
         // If this test breaks, update Smz3Randomizer.Version
         [Theory]
-        [InlineData("test", 62178842)] // Smz3Randomizer v2.0
+        [InlineData("test", 123066760)] // Smz3Randomizer v4.0
         public void StandardFillerWithSameSeedGeneratesSameWorld(string seed, int expectedHash)
         {
             var filler = new StandardFiller(GetLogger<StandardFiller>());
             var randomizer = GetRandomizer();
             var config = new Config();
+            config.CasPatches.QuarterMagic = false;
+            config.CasPatches.RandomizedBottles = false;
 
             var seedData = randomizer.GenerateSeed(config, seed, default);
-            var worldHash = GetHashForWorld(seedData.Worlds[0].World);
+            var worldHash = GetHashForWorld(seedData.WorldGenerationData.LocalWorld.World);
 
             worldHash.Should().Be(expectedHash);
         }
@@ -61,7 +63,8 @@ namespace Randomizer.SMZ3.Tests.LogicTests
             var randomizer = GetRandomizer();
 
             var config = new Config();
-            var region = new Data.WorldData.Regions.Zelda.LightWorld.LightWorldSouth(null, null);
+            var world = new World(config, "", 0, "");
+            var region = world.LightWorldSouth;
             var location1 = region.LinksHouse.Id;
             var location2 = region.MazeRace.Id;
             var location3 = region.IceCave.Id;
@@ -72,7 +75,7 @@ namespace Randomizer.SMZ3.Tests.LogicTests
             for (var i = 0; i < 3; i++)
             {
                 var seedData = randomizer.GenerateSeed(config, null, default);
-                var world = seedData.Worlds.First().World;
+                world = seedData.WorldGenerationData.LocalWorld.World;
                 world.Locations.First(x => x.Id == location1).Item.Progression.Should().BeTrue();
                 world.Locations.First(x => x.Id == location2).Item.Progression.Should().BeFalse();
                 var fireRodAtLocation = world.Locations.First(x => x.Id == location3).Item.Type == ItemType.Firerod;
@@ -86,20 +89,63 @@ namespace Randomizer.SMZ3.Tests.LogicTests
         {
             var filler = new StandardFiller(GetLogger<StandardFiller>());
             var randomizer = GetRandomizer();
+            var options = ItemSettingOptions.GetOptions();
+
+            var fireRod = options.First(opts =>
+                opts.Options.Any(opt => opt.MatchingItemTypes?.Contains(ItemType.Firerod) == true));
+            var iceRod = options.First(opts =>
+                opts.Options.Any(opt => opt.MatchingItemTypes?.Contains(ItemType.Icerod) == true));
+            var hiJump = options.First(opts =>
+                opts.Options.Any(opt => opt.MatchingItemTypes?.Contains(ItemType.HiJump) == true));
 
             var config = new Config();
-            config.EarlyItems.Add(ItemType.Firerod);
-            config.EarlyItems.Add(ItemType.Icerod);
-            config.EarlyItems.Add(ItemType.MoonPearl);
+            config.ItemOptions[fireRod.Item] =
+                fireRod.Options.FindIndex(x => x.MemoryValues == null && x.MatchingItemTypes != null);
+            config.ItemOptions[iceRod.Item] =
+                iceRod.Options.FindIndex(x => x.MemoryValues == null && x.MatchingItemTypes != null);
+            config.ItemOptions[hiJump.Item] =
+                hiJump.Options.FindIndex(x => x.MemoryValues == null && x.MatchingItemTypes != null);
 
             for (var i = 0; i < 3; i++)
             {
                 var seedData = randomizer.GenerateSeed(config, null, default);
-                var world = seedData.Worlds.First().World;
+                var world = seedData.WorldGenerationData.LocalWorld.World;
                 var progression = new Progression();
                 Logic.GetMissingRequiredItems(world.Locations.First(x => x.Item.Type == ItemType.Firerod), progression, out _).Should().BeEmpty();
                 Logic.GetMissingRequiredItems(world.Locations.First(x => x.Item.Type == ItemType.Icerod), progression, out _).Should().BeEmpty();
-                Logic.GetMissingRequiredItems(world.Locations.First(x => x.Item.Type == ItemType.MoonPearl), progression, out _).Should().BeEmpty();
+                Logic.GetMissingRequiredItems(world.Locations.First(x => x.Item.Type == ItemType.HiJump), progression, out _).Should().BeEmpty();
+            }
+        }
+
+        [Fact]
+        public void StartingItemConfigs()
+        {
+            var filler = new StandardFiller(GetLogger<StandardFiller>());
+            var randomizer = GetRandomizer();
+            var options = ItemSettingOptions.GetOptions();
+
+            var fireRod = options.First(opts =>
+                opts.Options.Any(opt => opt.MatchingItemTypes?.Contains(ItemType.Firerod) == true));
+            var iceRod = options.First(opts =>
+                opts.Options.Any(opt => opt.MatchingItemTypes?.Contains(ItemType.Icerod) == true));
+            var hiJump = options.First(opts =>
+                opts.Options.Any(opt => opt.MatchingItemTypes?.Contains(ItemType.HiJump) == true));
+
+            var config = new Config();
+            config.ItemOptions[fireRod.Item] =
+                fireRod.Options.FindIndex(x => x.MemoryValues != null && x.MatchingItemTypes != null);
+            config.ItemOptions[iceRod.Item] =
+                iceRod.Options.FindIndex(x => x.MemoryValues != null && x.MatchingItemTypes != null);
+            config.ItemOptions[hiJump.Item] =
+                hiJump.Options.FindIndex(x => x.MemoryValues != null && x.MatchingItemTypes != null);
+
+            for (var i = 0; i < 3; i++)
+            {
+                var seedData = randomizer.GenerateSeed(config, null, default);
+                var world = seedData.WorldGenerationData.LocalWorld.World;
+                world.AllItems.Should().NotContain(x => x.Type == ItemType.Firerod);
+                world.AllItems.Should().NotContain(x => x.Type == ItemType.Icerod);
+                world.AllItems.Should().NotContain(x => x.Type == ItemType.HiJump);
             }
         }
 
